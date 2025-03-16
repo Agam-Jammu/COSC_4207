@@ -1,6 +1,8 @@
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
+# retrieved from https://www.kaggle.com/datasets/jacksoncrow/stock-market-dataset
+
 # Load dataset
 df = pd.read_csv("data/AAPL_stock.csv", parse_dates=["Date"])
 

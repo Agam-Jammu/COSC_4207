@@ -23,10 +23,10 @@ data = df[['Open', 'High', 'Low', 'Close', 'Volume']].values
 # Model Parameters
 LATENT_DIM = 100
 FEATURES = data.shape[1]  # Number of stock features
-BATCH_SIZE = 128
-EPOCHS = 50
+BATCH_SIZE = 1024
+EPOCHS = 2000
 CRITIC_ITER = 5
-LAMBDA_GP = 10
+LAMBDA_GP = 15
 
 # -------------------
 # BUILD GENERATOR
@@ -39,7 +39,7 @@ def build_generator():
         layers.BatchNormalization(),
         layers.Dense(512, activation="relu"),
         layers.BatchNormalization(),
-        layers.Dense(FEATURES, activation="sigmoid")  # Ensure non-negative stock prices
+        layers.Dense(FEATURES, activation="sigmoid")  # for non-negative stock prices
     ])
     return model
 
@@ -62,7 +62,7 @@ class WGAN(tf.keras.Model):
         super(WGAN, self).__init__()
         self.generator = generator
         self.critic = critic
-        self.gen_optimizer = Adam(learning_rate=1e-4, beta_1=0.5, beta_2=0.9)
+        self.gen_optimizer = Adam(learning_rate=2e-4, beta_1=0.5, beta_2=0.9)
         self.crit_optimizer = Adam(learning_rate=1e-4, beta_1=0.5, beta_2=0.9)
 
     def compile(self):
@@ -134,6 +134,29 @@ synthetic_stock_data = generate_synthetic_data(generator, num_samples)
 synthetic_df = pd.DataFrame(synthetic_stock_data, columns=['Open', 'High', 'Low', 'Close', 'Volume'])
 synthetic_df.to_csv("../data/WGAN_synthetic_AAPL_stock.csv", index=False)
 print("Synthetic stock data saved as WGAN_synthetic_AAPL.csv")
+
+# -------------------
+# WASSERSTEIN DISTANCE
+# -------------------
+wass_distances = {}
+for i, col in enumerate(['Open', 'High', 'Low', 'Close', 'Volume']):
+    wass_distances[col] = wasserstein_distance(data[:, i], synthetic_stock_data[:, i])
+
+# Print Wasserstein distances
+print("Wasserstein Distances:")
+for feature, dist in wass_distances.items():
+    print(f"{feature}: {dist:.4f}")
+
+# Plot Distances
+plt.figure(figsize=(8, 6))
+plt.bar(wass_distances.keys(), wass_distances.values(), color='b', alpha=0.7)
+plt.xlabel("Stock Feature")
+plt.ylabel("Wasserstein Distance")
+plt.title("Wasserstein Distance between Real and Synthetic Data")
+plt.xticks(rotation=45)
+plt.savefig(f"{PLOT_DIR}/wasserstein_distance.png")
+plt.show()
+
 
 # -------------------
 # PCA & t-SNE
